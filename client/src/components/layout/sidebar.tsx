@@ -11,7 +11,8 @@ import {
   Truck,
   BarChart3,
   LogOut,
-  X
+  X,
+  ShoppingCart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -36,6 +37,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
     { href: "/doctors", label: "Doctors", icon: <UserRound className="h-5 w-5 mr-3" /> },
     { href: "/billing", label: "Billing", icon: <DollarSign className="h-5 w-5 mr-3" /> },
     { href: "/suppliers", label: "Suppliers", icon: <Truck className="h-5 w-5 mr-3" /> },
+    { href: "/orders", label: "Orders", icon: <ShoppingCart className="h-5 w-5 mr-3" /> },
     { href: "/reports", label: "Reports", icon: <BarChart3 className="h-5 w-5 mr-3" /> },
   ];
   

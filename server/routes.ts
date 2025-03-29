@@ -516,6 +516,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/orders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const orderData = insertOrderSchema.partial().parse(req.body);
+      
+      // Get existing order to make sure it exists
+      const existingOrder = await storage.getOrder(id);
+      if (!existingOrder) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Update order with new data
+      const order = await storage.updateOrder(id, orderData);
+      res.json(order);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update order" });
+    }
+  });
+
+  app.delete("/api/order-items/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteOrderItem(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Order item not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete order item" });
+    }
+  });
+
+  app.delete("/api/orders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get order items and delete them first
+      const items = await storage.getOrderItems(id);
+      for (const item of items) {
+        await storage.deleteOrderItem(item.id);
+      }
+      
+      // Then delete the order
+      const success = await storage.deleteOrder(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
   app.patch("/api/orders/:id/status", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

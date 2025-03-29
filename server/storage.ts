@@ -83,11 +83,14 @@ export interface IStorage {
   getOrder(id: number): Promise<Order | undefined>;
   getOrdersBySupplier(supplierId: number): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order | undefined>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
+  deleteOrder(id: number): Promise<boolean>;
   
   // Order Items
   getOrderItems(orderId: number): Promise<OrderItem[]>;
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
+  deleteOrderItem(id: number): Promise<boolean>;
 
   // Session store
   sessionStore: session.SessionStore;
@@ -575,6 +578,15 @@ export class MemStorage implements IStorage {
     return order;
   }
   
+  async updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order | undefined> {
+    const existingOrder = this.orders.get(id);
+    if (!existingOrder) return undefined;
+    
+    const updatedOrder = { ...existingOrder, ...order };
+    this.orders.set(id, updatedOrder);
+    return updatedOrder;
+  }
+  
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
     const order = this.orders.get(id);
     if (!order) return undefined;
@@ -582,6 +594,10 @@ export class MemStorage implements IStorage {
     const updatedOrder = { ...order, status };
     this.orders.set(id, updatedOrder);
     return updatedOrder;
+  }
+  
+  async deleteOrder(id: number): Promise<boolean> {
+    return this.orders.delete(id);
   }
   
   // Order Items
@@ -596,6 +612,10 @@ export class MemStorage implements IStorage {
     const orderItem: OrderItem = { ...insertOrderItem, id };
     this.orderItems.set(id, orderItem);
     return orderItem;
+  }
+  
+  async deleteOrderItem(id: number): Promise<boolean> {
+    return this.orderItems.delete(id);
   }
 }
 
