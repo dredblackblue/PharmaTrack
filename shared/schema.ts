@@ -106,6 +106,7 @@ export const suppliers = pgTable("suppliers", {
   contactNumber: text("contact_number"),
   email: text("email"),
   address: text("address"),
+  website: text("website"),
   notes: text("notes"),
 });
 

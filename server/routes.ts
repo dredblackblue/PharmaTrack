@@ -422,6 +422,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/suppliers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteSupplier(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Supplier not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete supplier" });
+    }
+  });
+
   // Orders API
   app.get("/api/orders", async (req, res) => {
     const orders = await storage.getOrders();
