@@ -15,6 +15,7 @@ import Suppliers from "@/pages/suppliers";
 import Transactions from "@/pages/transactions";
 import Orders from "@/pages/orders";
 import Reports from "@/pages/reports";
+import Profile from "@/pages/profile";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
@@ -36,6 +37,7 @@ function Router() {
       <ProtectedRoute path="/transactions/new" component={Transactions} />
       <ProtectedRoute path="/orders" component={Orders} />
       <ProtectedRoute path="/reports" component={Reports} />
+      <ProtectedRoute path="/profile" component={Profile} />
       
       <Route component={NotFound} />
     </Switch>

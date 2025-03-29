@@ -18,6 +18,10 @@ export const users = pgTable("users", {
   contactNumber: text("contact_number"),
   address: text("address"),
   dateJoined: timestamp("date_joined").defaultNow().notNull(),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  twoFactorSecret: text("two_factor_secret"),
+  twoFactorVerified: boolean("two_factor_verified").default(false),
+  notificationPreferences: text("notification_preferences"), // Stored as JSON string
 });
 
 // Medicines table

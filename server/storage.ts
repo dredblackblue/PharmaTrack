@@ -21,6 +21,11 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getUsers(): Promise<User[]>;
+  updateUserTwoFactorSecret(id: number, secret: string | null): Promise<User | undefined>;
+  updateUserTwoFactorEnabled(id: number, enabled: boolean): Promise<User | undefined>;
+  updateUserTwoFactorVerified(id: number, verified: boolean): Promise<User | undefined>;
+  updateUserNotificationPreferences(id: number, preferences: string): Promise<User | undefined>;
   
   // Medicines
   getMedicines(): Promise<Medicine[]>;
@@ -270,9 +275,63 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id, dateJoined: new Date() };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      dateJoined: new Date(),
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
+      twoFactorVerified: false,
+      notificationPreferences: JSON.stringify({
+        lowStock: true,
+        expiringMedicines: true,
+        orderUpdates: true,
+        prescriptionCreated: true,
+        dailyReports: false,
+      })
+    };
     this.users.set(id, user);
     return user;
+  }
+  
+  async getUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+  
+  async updateUserTwoFactorSecret(id: number, secret: string | null): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, twoFactorSecret: secret };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserTwoFactorEnabled(id: number, enabled: boolean): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, twoFactorEnabled: enabled };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserTwoFactorVerified(id: number, verified: boolean): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, twoFactorVerified: verified };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserNotificationPreferences(id: number, preferences: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, notificationPreferences: preferences };
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
   
   // Medicines
