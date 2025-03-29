@@ -22,8 +22,12 @@ import { Plus, Search, FileText, Receipt, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useLocation } from "wouter";
 
 export default function Billing() {
+  // For navigation
+  const [_, navigate] = useLocation();
+  
   // Fetch transactions
   const { data: transactions, isLoading, error } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
@@ -62,6 +66,7 @@ export default function Billing() {
         
         <Button 
           className="mt-4 md:mt-0 flex items-center"
+          onClick={() => navigate("/transactions/new")}
         >
           <Plus className="h-4 w-4 mr-2" />
           New Transaction
@@ -123,7 +128,7 @@ export default function Billing() {
                 <h3 className="text-2xl font-bold text-neutral-400">
                   {transactions?.filter(t => {
                     const today = new Date();
-                    const txDate = new Date(t.date);
+                    const txDate = new Date(t.transactionDate);
                     return today.toDateString() === txDate.toDateString();
                   }).length || 0}
                 </h3>
@@ -199,7 +204,7 @@ export default function Billing() {
                         )}
                       </TableCell>
                       <TableCell className="text-neutral-300">
-                        {formatDate(transaction.date)}
+                        {formatDate(transaction.transactionDate)}
                       </TableCell>
                       <TableCell className="font-medium text-neutral-400">
                         {formatCurrency(transaction.totalAmount)}
