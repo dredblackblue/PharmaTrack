@@ -29,8 +29,9 @@ import { formatCurrency } from "@/lib/utils";
 import { Edit, MoreVertical, AlertTriangle, ShoppingCart, Filter, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MedicineFactory, RepositoryFactory } from "@/lib/patterns";
-import { IMedicine } from "@/lib/patterns/factory";
+import { MedicineFactory } from "@/lib/patterns/factory";
+import { IMedicine } from "@/lib/patterns/factory"; 
+import { RepositoryFactory } from "@/lib/patterns/repository";
 import { NotificationCenter, NotificationType, Notification } from "@/lib/patterns/observer";
 import { useToast } from "@/hooks/use-toast";
 
