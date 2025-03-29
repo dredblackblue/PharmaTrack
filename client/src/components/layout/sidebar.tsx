@@ -80,14 +80,15 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         <ul>
           {navItems.map((item) => (
             <li key={item.href} className={`sidebar-item ${location === item.href ? 'active' : ''}`}>
-              <Link href={item.href}>
-                <a className={cn(
+              <Link 
+                href={item.href}
+                className={cn(
                   "flex items-center px-6 py-3 text-neutral-400 hover:text-primary",
                   location === item.href && "text-primary"
-                )}>
-                  {item.icon}
-                  {item.label}
-                </a>
+                )}
+              >
+                {item.icon}
+                {item.label}
               </Link>
             </li>
           ))}

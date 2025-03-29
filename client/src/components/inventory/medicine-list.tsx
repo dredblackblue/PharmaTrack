@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Medicine } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -24,40 +25,134 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatCurrency, calculateExpiryDays } from "@/lib/utils";
-import { Edit, MoreVertical, AlertTriangle, ShoppingCart } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { Edit, MoreVertical, AlertTriangle, ShoppingCart, Filter, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MedicineFactory, RepositoryFactory } from "@/lib/patterns";
+import { IMedicine } from "@/lib/patterns/factory";
+import { NotificationCenter, NotificationType, Notification } from "@/lib/patterns/observer";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MedicineList() {
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [displayMedicines, setDisplayMedicines] = useState<IMedicine[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const { toast } = useToast();
+  
+  // Get the notification center singleton
+  const notificationCenter = NotificationCenter.getInstance();
+  
+  // Get the medicine repository
+  const medicineRepository = RepositoryFactory.getMedicineRepository();
   
   // Fetch medicines
   const { data: medicines, isLoading, error } = useQuery<Medicine[]>({
     queryKey: ["/api/medicines"],
   });
   
+  // Process medicines with the factory pattern when data is loaded
+  useEffect(() => {
+    if (medicines) {
+      // Process medicines through the factory
+      const processedMedicines = medicines.map(medicine => {
+        // Determine medicine type based on category
+        const type = getMedicineType(medicine.category);
+        // Create medicine object using the factory
+        return MedicineFactory.createMedicine(type, medicine);
+      });
+      
+      setDisplayMedicines(processedMedicines);
+      
+      // Check for critical stock or expiry and send notifications
+      processedMedicines.forEach(medicine => {
+        const stockStatus = medicine.getStockStatus();
+        const expiryCheck = medicine.checkExpiry();
+        
+        // Send notifications for critical stock
+        if (stockStatus === 'Critical' || stockStatus === 'Out of Stock') {
+          notificationCenter.notify(new Notification(
+            NotificationType.LOW_STOCK,
+            'Critical Stock Alert',
+            `${medicine.name} is running low on stock.`,
+            'high',
+            { medicineId: medicine.id, stockStatus }
+          ));
+          
+          // Show toast for critical stock
+          toast({
+            title: 'Low Stock Alert',
+            description: `${medicine.name} is running low on stock.`,
+            variant: 'destructive'
+          });
+        }
+        
+        // Send notifications for expiring medicines
+        if (expiryCheck.warning) {
+          notificationCenter.notify(new Notification(
+            NotificationType.EXPIRY_WARNING,
+            'Expiry Warning',
+            `${medicine.name} will expire in ${expiryCheck.days} days.`,
+            expiryCheck.days <= 7 ? 'high' : 'medium',
+            { medicineId: medicine.id, daysToExpiry: expiryCheck.days }
+          ));
+        }
+      });
+    }
+  }, [medicines, toast]);
+  
+  // Filter medicines when category filter changes
+  useEffect(() => {
+    if (!displayMedicines.length) return;
+    
+    if (filterCategory) {
+      setDisplayMedicines(prevMedicines => 
+        prevMedicines.filter(med => med.category.toLowerCase() === filterCategory.toLowerCase())
+      );
+    } else if (medicines) {
+      // Reset to all medicines
+      const processedMedicines = medicines.map(medicine => {
+        const type = getMedicineType(medicine.category);
+        return MedicineFactory.createMedicine(type, medicine);
+      });
+      setDisplayMedicines(processedMedicines);
+    }
+  }, [filterCategory, medicines]);
+  
   const handleOrder = (medicine: Medicine) => {
     setSelectedMedicine(medicine);
     setIsOrderModalOpen(true);
   };
   
+  const getMedicineType = (category: string): string => {
+    // Map categories to medicine types
+    category = category.toLowerCase();
+    
+    if (category.includes('antibiotic')) return 'antibiotic';
+    if (category.includes('pain') || category.includes('analgesic')) return 'painkiller';
+    if (category.includes('otc') || category.includes('over-the-counter')) return 'otc';
+    
+    // Default to prescription if not matched
+    return 'prescription';
+  };
+  
   // Get status badge based on stock status
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'low_stock':
+      case 'Low Stock':
         return (
           <Badge variant="outline" className="bg-warning bg-opacity-10 text-warning border-warning">
             Low Stock
           </Badge>
         );
-      case 'critical':
+      case 'Critical':
         return (
           <Badge variant="outline" className="bg-error bg-opacity-10 text-error border-error">
             Critical
           </Badge>
         );
-      case 'out_of_stock':
+      case 'Out of Stock':
         return (
           <Badge variant="outline" className="bg-error bg-opacity-10 text-error border-error">
             Out of Stock
@@ -72,12 +167,61 @@ export default function MedicineList() {
     }
   };
   
+  // Extract unique categories for filter
+  const categoriesSet = new Set<string>();
+  medicines?.forEach(med => categoriesSet.add(med.category));
+  const categories = Array.from(categoriesSet);
+  
   return (
     <>
       <Card>
-        <CardHeader className="p-4 border-b flex justify-between items-center">
-          <CardTitle className="text-lg font-bold text-neutral-400">Medicines Inventory</CardTitle>
+        <CardHeader className="p-4 border-b flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div>
+            <CardTitle className="text-lg font-bold text-neutral-400">Medicines Inventory</CardTitle>
+            <CardDescription className="text-neutral-300 mt-1">
+              {!isLoading && !error && `Showing ${displayMedicines.length} medicines`}
+            </CardDescription>
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
+            {/* Filter by category */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center">
+                  <Filter className="h-4 w-4 mr-2" />
+                  {filterCategory || 'Filter by Category'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setFilterCategory(null)}>
+                  All Categories
+                </DropdownMenuItem>
+                {categories.map(category => (
+                  <DropdownMenuItem key={category} onClick={() => setFilterCategory(category)}>
+                    {category}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button variant="outline" className="flex items-center">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </CardHeader>
+        
+        {/* Stock Status Tabs */}
+        <div className="p-4 border-b">
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="low">Low Stock</TabsTrigger>
+              <TabsTrigger value="expiring">Expiring Soon</TabsTrigger>
+              <TabsTrigger value="in-stock">In Stock</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
         
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -116,30 +260,34 @@ export default function MedicineList() {
                       Failed to load medicines
                     </TableCell>
                   </TableRow>
-                ) : medicines && medicines.length > 0 ? (
-                  medicines.map(medicine => {
-                    const expiry = medicine.expiryDate ? calculateExpiryDays(medicine.expiryDate) : null;
+                ) : displayMedicines.length > 0 ? (
+                  displayMedicines.map(medicine => {
+                    const expiryCheck = medicine.checkExpiry();
+                    const stockStatus = medicine.getStockStatus();
+                    const medicineData = medicines?.find(m => m.id === medicine.id);
+                    
+                    if (!medicineData) return null;
                     
                     return (
                       <TableRow key={medicine.id} className="hover:bg-neutral-50">
                         <TableCell className="font-medium text-neutral-400">{medicine.name}</TableCell>
                         <TableCell className="text-neutral-300">{medicine.category}</TableCell>
-                        <TableCell className="text-neutral-400">{formatCurrency(medicine.price)}</TableCell>
-                        <TableCell className="text-neutral-400">{medicine.stockQuantity} units</TableCell>
-                        <TableCell>{getStatusBadge(medicine.stockStatus)}</TableCell>
+                        <TableCell className="text-neutral-400">{medicine.getDisplayPrice()}</TableCell>
+                        <TableCell className="text-neutral-400">{medicineData.stockQuantity} units</TableCell>
+                        <TableCell>{getStatusBadge(stockStatus)}</TableCell>
                         <TableCell>
-                          {medicine.expiryDate ? (
+                          {medicineData.expiryDate ? (
                             <div className="flex items-center">
-                              {expiry && expiry.critical && <AlertTriangle className="h-4 w-4 text-error mr-1" />}
-                              <span className={expiry && expiry.critical ? "text-error" : "text-neutral-300"}>
-                                {new Date(medicine.expiryDate).toLocaleDateString()}
+                              {expiryCheck.warning && <AlertTriangle className="h-4 w-4 text-error mr-1" />}
+                              <span className={expiryCheck.warning ? "text-error" : "text-neutral-300"}>
+                                {new Date(medicineData.expiryDate).toLocaleDateString()}
                               </span>
                             </div>
                           ) : (
                             <span className="text-neutral-300">Not set</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-neutral-300">{medicine.batchNumber || 'N/A'}</TableCell>
+                        <TableCell className="text-neutral-300">{medicineData.batchNumber || 'N/A'}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -150,7 +298,7 @@ export default function MedicineList() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
                                 className="flex items-center cursor-pointer"
-                                onClick={() => handleOrder(medicine)}
+                                onClick={() => handleOrder(medicineData)}
                               >
                                 <ShoppingCart className="h-4 w-4 mr-2" />
                                 Order
