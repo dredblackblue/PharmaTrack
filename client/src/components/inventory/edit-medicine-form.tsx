@@ -1,9 +1,10 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { insertMedicineSchema, Supplier } from "@shared/schema";
+import { insertMedicineSchema, Medicine, Supplier } from "@shared/schema";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,10 +33,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { useLocation } from "wouter";
 
-// Create a schema for the form
+// Extend the medicine schema for the form
 const medicineFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -51,7 +52,12 @@ const medicineFormSchema = z.object({
 
 type MedicineFormValues = z.infer<typeof medicineFormSchema>;
 
-export default function AddMedicineForm() {
+interface EditMedicineFormProps {
+  medicine: Medicine;
+  onCancel: () => void;
+}
+
+export default function EditMedicineForm({ medicine, onCancel }: EditMedicineFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
@@ -61,36 +67,72 @@ export default function AddMedicineForm() {
     queryKey: ["/api/suppliers"],
   });
   
+  // Format date for input field
+  const formatDateForInput = (date: Date | string | null | undefined) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toISOString().split('T')[0];
+  };
+  
+  // Format price for input field (convert cents to dollars)
+  const formatPriceForInput = (price: number) => {
+    return (price / 100).toString();
+  };
+  
   const form = useForm<MedicineFormValues>({
     resolver: zodResolver(medicineFormSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      category: "",
-      price: "",
-      stockQuantity: "",
-      batchNumber: "",
+      name: medicine.name,
+      description: medicine.description || "",
+      category: medicine.category,
+      price: formatPriceForInput(medicine.price),
+      stockQuantity: medicine.stockQuantity.toString(),
+      batchNumber: medicine.batchNumber || "",
+      supplierId: medicine.supplierId || undefined,
+      expiryDate: formatDateForInput(medicine.expiryDate),
     },
   });
   
-  // Create medicine mutation
-  const createMedicineMutation = useMutation({
+  // Update medicine mutation
+  const updateMedicineMutation = useMutation({
     mutationFn: async (data: MedicineFormValues) => {
-      const res = await apiRequest("POST", "/api/medicines", data);
+      const res = await apiRequest("PATCH", `/api/medicines/${medicine.id}`, data);
       return res.json();
     },
     onSuccess: () => {
       toast({
-        title: "Medicine added successfully",
-        description: "The medicine has been added to the inventory.",
+        title: "Medicine updated successfully",
+        description: "The medicine has been updated in the inventory.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/medicines"] });
-      form.reset();
+      onCancel();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update medicine",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Delete medicine mutation
+  const deleteMedicineMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/medicines/${medicine.id}`);
+      return res;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Medicine deleted successfully",
+        description: "The medicine has been removed from the inventory.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/medicines"] });
       navigate("/inventory");
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to add medicine",
+        title: "Failed to delete medicine",
         description: error.message,
         variant: "destructive",
       });
@@ -98,15 +140,21 @@ export default function AddMedicineForm() {
   });
   
   const onSubmit = (data: MedicineFormValues) => {
-    createMedicineMutation.mutate(data);
+    updateMedicineMutation.mutate(data);
+  };
+  
+  const handleDelete = () => {
+    if (confirm("Are you sure you want to delete this medicine? This action cannot be undone.")) {
+      deleteMedicineMutation.mutate();
+    }
   };
   
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-xl font-bold text-neutral-400">Add New Medicine</CardTitle>
+        <CardTitle className="text-xl font-bold text-neutral-400">Edit Medicine</CardTitle>
         <CardDescription>
-          Add a new medicine to the inventory. Fill in all the required information.
+          Update medicine information or delete it from inventory.
         </CardDescription>
       </CardHeader>
       
@@ -249,27 +297,45 @@ export default function AddMedicineForm() {
           </CardContent>
           
           <CardFooter className="flex justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/inventory")}
-              disabled={createMedicineMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMedicineMutation.isPending}
-            >
-              {createMedicineMutation.isPending ? (
-                <>
+            <div>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={updateMedicineMutation.isPending || deleteMedicineMutation.isPending}
+                className="flex items-center"
+              >
+                {deleteMedicineMutation.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding Medicine...
-                </>
-              ) : (
-                "Add Medicine"
-              )}
-            </Button>
+                ) : (
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                )}
+                Delete
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={updateMedicineMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateMedicineMutation.isPending}
+              >
+                {updateMedicineMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
           </CardFooter>
         </form>
       </Form>

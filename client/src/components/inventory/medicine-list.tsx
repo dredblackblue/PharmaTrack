@@ -35,8 +35,11 @@ import { RepositoryFactory } from "@/lib/patterns/repository";
 import { NotificationCenter, NotificationType, Notification } from "@/lib/patterns/observer";
 import { useToast } from "@/hooks/use-toast";
 
+import EditMedicineForm from "./edit-medicine-form";
+
 export default function MedicineList() {
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [editMedicine, setEditMedicine] = useState<Medicine | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [displayMedicines, setDisplayMedicines] = useState<IMedicine[]>([]);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
@@ -304,7 +307,10 @@ export default function MedicineList() {
                                 <ShoppingCart className="h-4 w-4 mr-2" />
                                 Order
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="flex items-center cursor-pointer">
+                              <DropdownMenuItem 
+                                className="flex items-center cursor-pointer"
+                                onClick={() => setEditMedicine(medicineData)}
+                              >
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
@@ -333,6 +339,18 @@ export default function MedicineList() {
           onClose={() => setIsOrderModalOpen(false)} 
           medicine={selectedMedicine} 
         />
+      )}
+      
+      {/* Edit Medicine Modal */}
+      {editMedicine && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-3xl overflow-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <EditMedicineForm 
+              medicine={editMedicine} 
+              onCancel={() => setEditMedicine(null)} 
+            />
+          </div>
+        </div>
       )}
     </>
   );
