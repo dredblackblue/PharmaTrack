@@ -225,7 +225,9 @@ export class MemStorage implements IStorage {
       contactNumber: "555-111-2222",
       email: "dr.johnson@healthcare.com",
       address: "789 Medical Center, Health City, HC 12345",
-      licenseNumber: "MD12345"
+      licenseNumber: "MD12345",
+      qualifications: "MD, Board Certified",
+      bio: "Dr. Johnson has been practicing medicine for over 15 years with a focus on preventative care."
     });
     
     // Add some patients
@@ -385,7 +387,12 @@ export class MemStorage implements IStorage {
   
   async createDoctor(insertDoctor: InsertDoctor): Promise<Doctor> {
     const id = this.doctorCurrentId++;
-    const doctor: Doctor = { ...insertDoctor, id };
+    const doctor: Doctor = { 
+      ...insertDoctor, 
+      id,
+      qualifications: insertDoctor.qualifications || null,
+      bio: insertDoctor.bio || null
+    };
     this.doctors.set(id, doctor);
     return doctor;
   }

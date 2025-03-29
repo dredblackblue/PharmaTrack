@@ -56,6 +56,8 @@ export const doctors = pgTable("doctors", {
   email: text("email"),
   address: text("address"),
   licenseNumber: text("license_number").notNull(),
+  qualifications: text("qualifications"),
+  bio: text("bio"),
 });
 
 // Prescriptions table
