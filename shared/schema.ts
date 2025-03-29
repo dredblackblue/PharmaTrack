@@ -84,9 +84,12 @@ export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   patientId: integer("patient_id").references(() => patients.id).notNull(),
   prescriptionId: integer("prescription_id").references(() => prescriptions.id),
-  date: timestamp("date").defaultNow().notNull(),
+  transactionNumber: text("transaction_number").notNull(),
+  transactionDate: timestamp("transaction_date").defaultNow().notNull(),
   totalAmount: integer("total_amount").notNull(), // stored in cents
   status: transactionStatusEnum("status").notNull().default('pending'),
+  notes: text("notes"),
+  patientName: text("patient_name"), // For display purposes
 });
 
 // Transaction Items table
@@ -94,8 +97,10 @@ export const transactionItems = pgTable("transaction_items", {
   id: serial("id").primaryKey(),
   transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
   medicineId: integer("medicine_id").references(() => medicines.id).notNull(),
+  medicineName: text("medicine_name").notNull(), // For display purposes
   quantity: integer("quantity").notNull(),
   price: integer("price").notNull(), // stored in cents
+  unitPrice: integer("unit_price").notNull(), // stored in cents, price per unit
 });
 
 // Suppliers table
@@ -162,7 +167,7 @@ export const insertPrescriptionItemSchema = createInsertSchema(prescriptionItems
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
-  date: true,
+  transactionDate: true,
   status: true,
 });
 

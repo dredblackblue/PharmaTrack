@@ -351,6 +351,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create transaction item" });
     }
   });
+  
+  app.post("/api/transaction-items", async (req, res) => {
+    try {
+      const itemData = insertTransactionItemSchema.parse(req.body);
+      const item = await storage.createTransactionItem(itemData);
+      
+      // Update medicine stock
+      const medicine = await storage.getMedicine(itemData.medicineId);
+      if (medicine) {
+        await storage.updateMedicine(medicine.id, {
+          stockQuantity: medicine.stockQuantity - itemData.quantity
+        });
+      }
+      
+      res.status(201).json(item);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create transaction item" });
+    }
+  });
 
   app.patch("/api/transactions/:id/status", async (req, res) => {
     try {

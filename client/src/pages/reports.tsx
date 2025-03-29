@@ -67,7 +67,7 @@ export default function Reports() {
   const filteredTransactions = transactions ? transactions.filter(transaction => {
     if (!dateRange.from && !dateRange.to) return true;
     
-    const transactionDate = new Date(transaction.date);
+    const transactionDate = new Date(transaction.transactionDate);
     
     if (dateRange.from && dateRange.to) {
       return transactionDate >= dateRange.from && transactionDate <= dateRange.to;

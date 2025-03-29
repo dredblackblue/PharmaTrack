@@ -12,6 +12,7 @@ import Patients from "@/pages/patients";
 import Doctors from "@/pages/doctors";
 import Billing from "@/pages/billing";
 import Suppliers from "@/pages/suppliers";
+import Transactions from "@/pages/transactions";
 import Reports from "@/pages/reports";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -30,6 +31,8 @@ function Router() {
       <ProtectedRoute path="/billing" component={Billing} />
       <ProtectedRoute path="/suppliers" component={Suppliers} />
       <ProtectedRoute path="/suppliers/new" component={Suppliers} />
+      <ProtectedRoute path="/transactions" component={Transactions} />
+      <ProtectedRoute path="/transactions/new" component={Transactions} />
       <ProtectedRoute path="/reports" component={Reports} />
       
       <Route component={NotFound} />
