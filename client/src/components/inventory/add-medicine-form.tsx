@@ -226,7 +226,7 @@ export default function AddMedicineForm() {
                   <FormLabel>Supplier</FormLabel>
                   <Select 
                     onValueChange={(value) => field.onChange(parseInt(value))}
-                    value={field.value?.toString()}
+                    value={field.value !== undefined ? field.value.toString() : ""}
                     disabled={isSuppliersLoading}
                   >
                     <FormControl>

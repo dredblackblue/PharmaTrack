@@ -26,6 +26,7 @@ function Router() {
       
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/inventory" component={Inventory} />
+      <ProtectedRoute path="/inventory/new" component={Inventory} />
       <ProtectedRoute path="/prescriptions" component={Prescriptions} />
       <ProtectedRoute path="/patients" component={Patients} />
       <ProtectedRoute path="/patients/new" component={Patients} />
