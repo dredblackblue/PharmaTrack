@@ -50,8 +50,12 @@ export default function ViewTransactionModal({ transaction, onClose }: ViewTrans
   };
 
   // Format date helper
-  const formatDate = (date: Date) => {
-    return format(new Date(date), "PPP");
+  const formatDate = (date: any) => {
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+        return "Invalid Date"; // Handle gracefully
+    }
+    return format(parsedDate, "MMM dd, yyyy");
   };
 
   const formatTime = (date: Date) => {

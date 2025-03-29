@@ -78,8 +78,12 @@ export default function TransactionList() {
   };
 
   // Helper function to format date
-  const formatDate = (date: Date) => {
-    return format(new Date(date), "MMM dd, yyyy");
+  const formatDate = (date: any) => {
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+        return "Invalid Date"; // Handle gracefully
+    }
+    return format(parsedDate, "MMM dd, yyyy");
   };
 
   // Helper function to get the appropriate badge color based on status
