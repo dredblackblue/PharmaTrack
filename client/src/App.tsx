@@ -12,6 +12,7 @@ import Patients from "@/pages/patients";
 import Doctors from "@/pages/doctors";
 import Billing from "@/pages/billing";
 import Suppliers from "@/pages/suppliers";
+import Reports from "@/pages/reports";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
@@ -27,6 +28,7 @@ function Router() {
       <ProtectedRoute path="/doctors" component={Doctors} />
       <ProtectedRoute path="/billing" component={Billing} />
       <ProtectedRoute path="/suppliers" component={Suppliers} />
+      <ProtectedRoute path="/reports" component={Reports} />
       
       <Route component={NotFound} />
     </Switch>
